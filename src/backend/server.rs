@@ -317,4 +317,35 @@ mod tests {
         let (ws_stream, _) = connect_async(&format!("ws://localhost:{port}/ws")).await?;
         Ok((ws_stream, format!("localhost:{port}")))
     }
+     // Example of extending WebSocket handling with message logging
+    async fn log_incoming_message(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) -> anyhow::Result<()> {
+        while let Some(message) = ws.next().await {
+            match message {
+                Ok(msg) => {
+                    if let tokio_tungstenite::tungstenite::Message::Text(text) = msg {
+                        tracing::info!("Received message: {}", text);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Error receiving WebSocket message: {}", e);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    // Handle a simple ping-pong message exchange for WebSocket keep-alive
+    async fn ping_pong(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) -> anyhow::Result<()> {
+        loop {
+            ws.send(tokio_tungstenite::tungstenite::Message::Ping(vec![])).await?;
+            tracing::info!("Sent Ping message to keep the connection alive");
+            tokio::time::sleep(Duration::from_secs(30)).await; // Wait for 30 seconds before sending the next ping
+        }
+    }
+
+    // Example of WebSocket handler where we combine log and ping functionality
+    pub async fn handle_websocket_connection(ws: WebSocketStream<MaybeTlsStream<TcpStream>>) -> anyhow::Result<()> {
+        tokio::spawn(log_incoming_message(ws.clone())); // Log incoming messages asynchronously
+        ping_pong(&mut ws).await // Keep the WebSocket connection alive with ping-pong
+    }
 }
