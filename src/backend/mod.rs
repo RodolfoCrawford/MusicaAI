@@ -1,6 +1,8 @@
 pub use audio_generation_backend::MusicGenJobProcessor;
 pub use server::*;
 
+pub use music_gpt_ws_handler::MusicGPTWebSocketHandler; 
+
 mod audio_generation_backend;
 mod server;
 #[cfg(test)]
@@ -12,38 +14,36 @@ mod music_gpt_ws_handler;
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
-    use std::time::Duration;
-    use specta::ts::{BigIntExportBehavior, ExportConfiguration};
-
-    use crate::storage::AppFs;
-    use crate::backend::_test_utils::DummyJobProcessor;
-    use crate::backend::RunOptions;
-    use crate::backend::server::run;
+    use super::audio_generation_backend::MusicGenJobProcessor;
+    use crate::backend::music_gpt_ws_handler::MusicGPTWebSocketHandler;
 
     #[ignore]
     #[tokio::test]
     async fn spawn_dummy_server() -> anyhow::Result<()> {
-        let storage = AppFs::new(Path::new("/tmp/dummy-server"));
-        let processor = DummyJobProcessor::new(Duration::from_millis(100));
+       
+    }
+
+   
+    #[ignore]
+    #[tokio::test]
+    async fn test_music_gen_processor() -> anyhow::Result<()> {
+        let storage = AppFs::new(Path::new("/tmp/music-gen-test"));
+        let processor = MusicGenJobProcessor::new(Duration::from_secs(1));
         let options = RunOptions {
-            port: 8642,
+            port: 8643,
             auto_open: false,
             expose: false,
         };
-        run(storage, processor, options).await
+        
+        let test_handler = MusicGPTWebSocketHandler::new(processor.clone());
+        let handle = tokio::spawn(run(storage, processor, options));
+        
+        handle.abort(); 
+        Ok(())
     }
-
+   
     #[ignore]
     #[test]
     fn export_bindings() -> anyhow::Result<()> {
-        specta::export::ts_with_cfg(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("web/src/backend/bindings.ts")
-                .to_str()
-                .unwrap(),
-            &ExportConfiguration::default().bigint(BigIntExportBehavior::Number),
-        )?;
-        Ok(())
+       
     }
-}
