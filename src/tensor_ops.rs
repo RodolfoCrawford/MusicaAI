@@ -28,3 +28,12 @@ pub fn ones_tensor<T: PrimitiveTensorElementType + Debug + Clone + One + 'static
 ) -> Tensor<T> {
     ort::value::Value::from_array(Array::<T, _>::ones(shape)).expect("Could not build zeros tensor")
 }
+
+pub fn full_tensor<T: PrimitiveTensorElementType + Debug + Clone + 'static>(
+    shape: &[usize],
+    value: T,
+) -> Tensor<T> {
+    let total_len = shape.iter().product();
+    let data = vec![value; total_len];
+    Tensor::from_array((shape.to_vec(), data)).expect("Could not build full tensor")
+}
